@@ -6,18 +6,17 @@ package Monos;
 
 /**
  *
- * @author Usuario
+ * @author Juan
  */
-public class Minigun extends Monos {
+public class Boomeran extends Monos {
 
-    public Minigun() {
-        super(950, 10);
+    public Boomeran(int coste, int dps) {
+        super(500, 5);
     }
 
     public void realizarMejora(boolean mejora) {
         if (mejora) {
-            super.setDps(super.getDps()+10);
+            super.setDps(super.getDps() + 5);
         }
     }
-
 }
