@@ -18,7 +18,7 @@ public class Minigun extends Monos {
 
     public void realizarMejora(boolean mejora) {
         if (mejora) {
-            super.setDps(super.getDps()+1);
+            super.setDps(super.getDps()+10);
         }
     }
 
