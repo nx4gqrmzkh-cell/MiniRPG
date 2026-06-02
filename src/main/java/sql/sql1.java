@@ -1,65 +1,51 @@
 package sql;
 
-// IMPORTANTE: Importamos las clases del paquete Monos para poder usarlas aquí
-import Monos.Monos;
-import Monos.Dardero;
-import Monos.Minigun;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import Monos.Tower;
+import Monos.TowerFactory;
+import java.awt.Color;
+import java.sql.*;
 
 public class sql1 {
 
-    // Configuración de la base de datos (Usamos la que creamos: bloons_db)
     private static final String URL = "jdbc:mysql://localhost/juego";
     private static final String USER = "root";
     private static final String PASSWORD = "";
 
     public static void main(String[] args) {
+        System.out.println("=== 1. REGISTRANDO TORRE EN LA BASE DE DATOS ===");
 
-        System.out.println("=== 1. CREANDO E INSERTANDO UN MONO EN LA BD ===");
-        // Creamos un objeto de tu clase Minigun (recuerda que por defecto cuesta 950 y tiene 10 DPS)
-        Minigun miTorreNueva = new Minigun();
+        // Probamos insertando un aliado usando sus valores dinámicos
+        Tower dardo = TowerFactory.createDartMonkey();
+        insertarTorreEnBD(dardo);
 
-        // Ejecutamos el método para guardarlo en la base de datos
-        insertarTorreEnBD("Mono Minigun", "Dispara rafagas de dardos a velocidad extrema.", miTorreNueva.getCoste());
-
-        System.out.println("\n=== 2. LEYENDO Y CREANDO OBJETOS JAVA DESDE LA BD ===");
-        // Cargamos las torres desde la base de datos
+        System.out.println("\n=== 2. CARGANDO ENTIDADES DESDE LA BASE DE DATOS ===");
         cargarTorresDesdeBD();
     }
 
-    /**
-     * MÉTODO PARA INSERTAR: Toma los datos de tus objetos Java y los mete al
-     * SQL
-     */
-    public static void insertarTorreEnBD(String nombre, String descripcion, int costo) {
-        String sql = "INSERT INTO torres (nombre, descripcion, costo_desbloqueo) VALUES (?, ?, ?)";
+    public static void insertarTorreEnBD(Tower t) {
+        // Sentencia SQL adaptada para almacenar las propiedades clave de tu juego
+        String sql = "INSERT INTO torres (nombre, rango, costo, daño, cadencia_fuego, color_rgb) VALUES (?, ?, ?, ?, ?, ?)";
 
         try (Connection conexion = DriverManager.getConnection(URL, USER, PASSWORD); PreparedStatement psnt = conexion.prepareStatement(sql)) {
 
-            // Pasamos los parámetros de forma segura
-            psnt.setString(1, nombre);
-            psnt.setString(2, descripcion);
-            psnt.setInt(3, costo);
+            psnt.setString(1, t.getName());
+            psnt.setInt(2, t.getRange());
+            psnt.setInt(3, t.getCost());
+            psnt.setInt(4, t.getDamage());
+            psnt.setLong(5, t.getFireRate());
 
-            int filasAfectadas = psnt.executeUpdate(); // executeUpdate se usa para INSERT, UPDATE, DELETE
-            if (filasAfectadas > 0) {
-                System.out.println("¡" + nombre + " guardado exitosamente en la base de datos!");
-            }
+            // Convertimos el objeto Color de Java a String legible para la base de datos
+            String rgb = t.getColor().getRed() + "," + t.getColor().getGreen() + "," + t.getColor().getBlue();
+            psnt.setString(6, rgb);
+
+            psnt.executeUpdate();
+            System.out.println("¡Torre '" + t.getName() + "' guardada con éxito en SQL!");
 
         } catch (SQLException e) {
-            System.out.println("Error al insertar la torre: " + e.getMessage());
+            System.out.println("Error al guardar la torre: " + e.getMessage());
         }
     }
 
-    /**
-     * MÉTODO PARA LEER: Trae los datos de SQL y te muestra cómo se
-     * instanciarían en Java
-     */
     public static void cargarTorresDesdeBD() {
         String sql = "SELECT * FROM torres";
 
@@ -67,23 +53,30 @@ public class sql1 {
 
             while (rset.next()) {
                 String nombre = rset.getString("nombre");
-                int costo = rset.getInt("costo_desbloqueo");
+                int costo = rset.getInt("costo");
+                int rango = rset.getInt("rango");
 
-                System.out.println("Cargado de SQL -> Nombre: " + nombre + " | Costo: $" + costo);
+                System.out.println("SQL -> Registro: " + nombre + " | Costo: $" + costo + " | Rango: " + rango);
 
-                // Aquí es donde ocurre la magia de la conexión:
-                // Dependiendo de lo que diga la Base de datos, tú crearías el objeto en Java
-                if (nombre.contains("Dardos")) {
-                    Dardero d = new Dardero(costo, 1); // Instancia tu clase Dardero
-                    System.out.println("   [Sistema] Objeto Dardero creado en memoria de Java.");
-                } else if (nombre.contains("Minigun")) {
-                    Minigun m = new Minigun(); // Instancia tu clase Minigun
-                    System.out.println("   [Sistema] Objeto Minigun creado en memoria de Java.");
+                // Mapeo directo de instanciación en memoria de Java usando la factoría corregida
+                Tower objetoJava = null;
+                if (nombre.equalsIgnoreCase("Mono Dardo")) {
+                    objetoJava = TowerFactory.createDartMonkey();
+                } else if (nombre.equalsIgnoreCase("Mono Boomerang")) {
+                    objetoJava = TowerFactory.createTackShooter();
+                } else if (nombre.equalsIgnoreCase("Mono Militar")) {
+                    objetoJava = TowerFactory.createSniper();
+                } else if (nombre.equalsIgnoreCase("Super Kitty")) {
+                    objetoJava = TowerFactory.createSuperMonkey();
+                }
+
+                if (objetoJava != null) {
+                    System.out.println("   [Sistema] Objeto '" + objetoJava.getName() + "' mapeado en Java.");
                 }
             }
 
         } catch (SQLException e) {
-            System.out.println("Error al cargar las torres: " + e.getMessage());
+            System.out.println("Error al consultar la tabla: " + e.getMessage());
         }
     }
 }
