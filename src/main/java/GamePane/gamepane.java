@@ -8,6 +8,7 @@ package GamePane;
  *
  * @author Usuario
  */
+
 public gamepane() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setBackground(new Color(34, 139, 34)); // Verde césped
