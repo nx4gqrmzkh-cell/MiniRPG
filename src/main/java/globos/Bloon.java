@@ -9,7 +9,6 @@ import Panel.Path;
 public class Bloon {
 
     public enum Type {
-        // Cada tipo es más rápido (speed) y resistente (layers/rbe) que el anterior
         RED(1, 1, 1.2, Color.RED, null, "imagenes/enemigos/enemy_1_bow_bat.png"),
         BLUE(2, 2, 1.6, Color.BLUE, RED, "imagenes/enemigos/enemy_2_skull_cat.png"),
         GREEN(3, 3, 2.2, Color.GREEN, BLUE, "imagenes/enemigos/enemy_3_robot_kitty.png"),
@@ -36,11 +35,13 @@ public class Bloon {
 
     private static Image getBloonImage(String path, int size) {
         if (!imageCache.containsKey(path)) {
-            try {
-                ImageIcon icon = new ImageIcon(path);
-                Image scaled = icon.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
+            java.net.URL url = Bloon.class.getClassLoader().getResource(path);
+            if (url != null) {
+                Image scaled = new ImageIcon(url).getImage()
+                        .getScaledInstance(size, size, Image.SCALE_SMOOTH);
                 imageCache.put(path, scaled);
-            } catch (Exception e) {
+            } else {
+                System.err.println("[Bloon] No se encontró imagen: " + path);
                 return null;
             }
         }
@@ -84,17 +85,14 @@ public class Bloon {
         }
     }
 
-    // Cambia el antiguo método damage(int amount) por este en Bloon.java:
     public void takeDamage(int amount) {
         if (popped) {
             return;
         }
-        // Restamos las capas según el daño recibido
-        // Si te acomoda más, puedes usar 'type.layers' o controlar una variable de vida.
         if (type.child != null) {
-            this.type = type.child; // Pasa al hijo (ej. de Azul a Rojo)
+            this.type = type.child;
         } else {
-            popped = true; // Si ya no tiene hijos, se elimina
+            popped = true;
         }
     }
 
@@ -142,11 +140,9 @@ public class Bloon {
     public void draw(Graphics2D g) {
         int size = 35;
 
-        // Sombra
         g.setColor(new Color(0, 0, 0, 50));
         g.fillOval((int) x - size / 2 + 3, (int) y - size / 2 + 3, size, size);
 
-        // Renderizado de Hello Kitty Malvada
         Image img = getBloonImage(type.imagePath, size);
         if (img != null) {
             g.drawImage(img, (int) x - size / 2, (int) y - size / 2, null);
@@ -155,5 +151,4 @@ public class Bloon {
             g.fillOval((int) x - size / 2, (int) y - size / 2, size, size);
         }
     }
-
 }
