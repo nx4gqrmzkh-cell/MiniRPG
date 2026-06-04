@@ -12,3 +12,5 @@
 2026-06-04 22:05:32 | Ronda: 1 | Dinero: 462 | Vidas: 100
 2026-06-04 22:06:23 | Ronda: 2 | Dinero: 81 | Vidas: 100
 2026-06-04 22:06:56 | Ronda: 3 | Dinero: 107 | Vidas: 100
+2026-06-04 22:18:51 | Ronda: 1 | Dinero: 62 | Vidas: 100
+2026-06-04 22:19:16 | Ronda: 2 | Dinero: 81 | Vidas: 100
