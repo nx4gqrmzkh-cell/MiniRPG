@@ -10,7 +10,7 @@ public class TowerFactory {
         return new Tower(
                 "Mono Militar",
                 999,
-                400,
+                450,
                 2,
                 2000,
                 new Color(0, 100, 0),

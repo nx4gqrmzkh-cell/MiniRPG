@@ -283,7 +283,7 @@ public class GamePanel extends JPanel implements Runnable {
 
         g2d.setFont(new Font("Arial", Font.ITALIC, 11));
         g2d.drawString(
-                "Teclas [1 Dardero, 2 Boomerang, 3 Militar, 4 SuperKitty] | [ESPACIO] Iniciar ronda",
+                "Teclas [1 Dardero($200), 2 Boomerang(350), 3 Militar($450), 4 SuperKitty($2500)] | [ESPACIO] Iniciar ronda",
                 25, 112
         );
     }
