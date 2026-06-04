@@ -30,7 +30,7 @@ public class GamePanel extends JPanel implements Runnable {
     private int money = 650;
     private int lives = 100;
     private int round = 1;
-    private int ultimaRondaGuardada = 0; // evita guardar varias veces por oleada
+    private int ultimaRondaGuardada = 0;
 
     private List<Bloon> bloons = new ArrayList<>();
     private List<Tower> towers = new ArrayList<>();
@@ -45,15 +45,15 @@ public class GamePanel extends JPanel implements Runnable {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setFocusable(true);
 
-        try {
-            mapaFondo = new ImageIcon("mapa.png").getImage();
-        } catch (Exception e) {
-            System.err.println("No se encontró mapa.png localmente.");
-        }
+        // ── Carga del mapa: intenta varias rutas para mayor compatibilidad ────
+        mapaFondo = cargarImagen("mapa.png",
+                "resources/mapa.png",
+                "src/mapa.png",
+                "../mapa.png");
 
+        // ── BD (modo desconectado si no hay MySQL) ────────────────────────────
         try {
-            TorreDAO db = new TorreDAO();
-            db.leerTodos();
+            new TorreDAO().leerTodos();
         } catch (Exception e) {
             System.out.println("[SQL] Corriendo en modo desconectado.");
         }
@@ -72,6 +72,7 @@ public class GamePanel extends JPanel implements Runnable {
             @Override
             public void mouseMoved(MouseEvent e) {
                 mousePos = e.getPoint();
+                repaint();
             }
         });
 
@@ -85,6 +86,24 @@ public class GamePanel extends JPanel implements Runnable {
         start();
     }
 
+    /**
+     * Intenta cargar una imagen desde varias rutas candidatas.
+     */
+    private Image cargarImagen(String... rutas) {
+        for (String ruta : rutas) {
+            try {
+                ImageIcon icon = new ImageIcon(ruta);
+                if (icon.getIconWidth() > 0) {
+                    System.out.println("[Mapa] Cargado desde: " + ruta);
+                    return icon.getImage();
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        System.err.println("[Mapa] No se encontró mapa.png. Usando fondo verde.");
+        return null;
+    }
+
     public void start() {
         if (gameThread == null) {
             gameThread = new Thread(this);
@@ -93,41 +112,44 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
+    // ── CLICK: colocar torre ──────────────────────────────────────────────────
     private void handleClick(int x, int y) {
-        if (selectedTowerType != null) {
-            if (path.isOnPath(x, y, 32)) {
-                System.out.println("¡Error: Zona de carril reservada para globos!");
+        if (selectedTowerType == null) {
+            return;
+        }
+
+        if (path.isOnPath(x, y, 38)) {
+            System.out.println("¡Zona de carril reservada para globos!");
+            return;
+        }
+        for (Tower t : towers) {
+            if (Math.hypot(t.getX() - x, t.getY() - y) < 32) {
+                System.out.println("No puedes superponer dos monos.");
                 return;
             }
-
-            for (Tower t : towers) {
-                if (Math.hypot(t.getX() - x, t.getY() - y) < 30) {
-                    System.out.println("No puedes superponer dos monos.");
-                    return;
-                }
-            }
-
-            if (money >= selectedTowerType.getCost()) {
-                money -= selectedTowerType.getCost();
-                Tower nuevaTorre;
-                String nombre = selectedTowerType.getName();
-
-                if (nombre.equals("Mono Militar")) {
-                    nuevaTorre = TowerFactory.createSniper();
-                } else if (nombre.equals("Mono Boomerang")) {
-                    nuevaTorre = TowerFactory.createTackShooter();
-                } else if (nombre.equals("Super Kitty")) {
-                    nuevaTorre = TowerFactory.createSuperMonkey();
-                } else {
-                    nuevaTorre = TowerFactory.createDartMonkey();
-                }
-
-                nuevaTorre.setPosition(x, y);
-                towers.add(nuevaTorre);
-            }
+        }
+        if (money >= selectedTowerType.getCost()) {
+            money -= selectedTowerType.getCost();
+            Tower nueva = crearTorrePorNombre(selectedTowerType.getName());
+            nueva.setPosition(x, y);
+            towers.add(nueva);
         }
     }
 
+    private Tower crearTorrePorNombre(String nombre) {
+        return switch (nombre) {
+            case "Mono Militar" ->
+                TowerFactory.createSniper();
+            case "Mono Boomerang" ->
+                TowerFactory.createTackShooter();
+            case "Super Kitty" ->
+                TowerFactory.createSuperMonkey();
+            default ->
+                TowerFactory.createDartMonkey();
+        };
+    }
+
+    // ── TECLADO ───────────────────────────────────────────────────────────────
     private void handleKeyPress(int keyCode) {
         switch (keyCode) {
             case KeyEvent.VK_1 ->
@@ -149,15 +171,14 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
+    // ── GAME LOOP ─────────────────────────────────────────────────────────────
     @Override
     public void run() {
-        long nsPerFrame = 1000000000 / TARGET_FPS;
+        long nsPerFrame = 1_000_000_000L / TARGET_FPS;
         long lastTime = System.nanoTime();
-
         while (running) {
             long now = System.nanoTime();
             long elapsed = now - lastTime;
-
             if (elapsed >= nsPerFrame) {
                 updateGame();
                 repaint();
@@ -165,14 +186,13 @@ public class GamePanel extends JPanel implements Runnable {
             }
             try {
                 Thread.sleep(2);
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         }
     }
 
     private void updateGame() {
         waveManager.update();
-
         for (Tower t : towers) {
             t.update(bloons, projectiles);
         }
@@ -186,13 +206,11 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
 
-        Iterator<Bloon> bIt = bloons.iterator();
         List<Bloon> nuevosHijos = new ArrayList<>();
-
+        Iterator<Bloon> bIt = bloons.iterator();
         while (bIt.hasNext()) {
             Bloon b = bIt.next();
             b.update();
-
             if (b.reachedEnd()) {
                 lives -= b.getDamage();
                 bIt.remove();
@@ -200,13 +218,12 @@ public class GamePanel extends JPanel implements Runnable {
                     lives = 0;
                     running = false;
                     System.out.println("GAME OVER");
-                    // Guardar resultado en fichero de texto y en base de datos
-                    int rondaFinal = round - 1;
-                    PartidaLogger.guardarPartida(rondaFinal, money, lives);
+                    int rf = round - 1;
+                    PartidaLogger.guardarPartida(rf, money, lives);
                     try {
-                        new HistorialDAO().guardar(rondaFinal, money, lives);
+                        new HistorialDAO().guardar(rf, money, lives);
                     } catch (Exception ex) {
-                        System.err.println("[BD] No se pudo guardar el historial: " + ex.getMessage());
+                        System.err.println("[BD] " + ex.getMessage());
                     }
                 }
             } else if (b.isPopped()) {
@@ -221,66 +238,96 @@ public class GamePanel extends JPanel implements Runnable {
         }
         bloons.addAll(nuevosHijos);
 
-        // Al terminar cada oleada con vida, guardar estado en fichero y BD (una sola vez)
-        int rondaCompletada = round - 1;
-        if (!waveManager.isWaveActive() && bloons.isEmpty() && rondaCompletada > 0
-                && rondaCompletada != ultimaRondaGuardada) {
-            ultimaRondaGuardada = rondaCompletada;
-            PartidaLogger.guardarPartida(rondaCompletada, money, lives);
+        // Guardar estado al completar oleada (una sola vez)
+        int rc = round - 1;
+        if (!waveManager.isWaveActive() && bloons.isEmpty() && rc > 0 && rc != ultimaRondaGuardada) {
+            ultimaRondaGuardada = rc;
+            PartidaLogger.guardarPartida(rc, money, lives);
             try {
-                new HistorialDAO().guardar(rondaCompletada, money, lives);
+                new HistorialDAO().guardar(rc, money, lives);
             } catch (Exception ex) {
-                System.err.println("[BD] No se pudo guardar el historial: " + ex.getMessage());
+                System.err.println("[BD] " + ex.getMessage());
             }
         }
     }
 
+    // ── RENDER ────────────────────────────────────────────────────────────────
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g;
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
+        // Fondo: mapa real o color de emergencia
         if (mapaFondo != null) {
-            g2d.drawImage(mapaFondo, 0, 0, WIDTH, HEIGHT, this);
+            g2.drawImage(mapaFondo, 0, 0, WIDTH, HEIGHT, this);
         } else {
-            g2d.setColor(new Color(34, 139, 34));
-            g2d.fillRect(0, 0, WIDTH, HEIGHT);
+            g2.setColor(new Color(255, 192, 203)); // rosa claro de emergencia
+            g2.fillRect(0, 0, WIDTH, HEIGHT);
         }
 
-        path.draw(g2d);
-
+        // Línea guía sutil del camino (sólo en modo debug)
+        // path.draw(g2);  // ← descomenta para depurar el trayecto
         for (Tower t : towers) {
-            t.draw(g2d);
+            t.draw(g2);
         }
         for (Bloon b : bloons) {
-            b.draw(g2d);
+            b.draw(g2);
         }
         for (Projectile p : projectiles) {
-            p.draw(g2d);
+            p.draw(g2);
         }
 
-        if (selectedTowerType != null && mousePos != null) {
-            g2d.setColor(new Color(255, 255, 255, 60));
+        // Vista previa de rango al colocar torre
+        if (selectedTowerType != null) {
             int r = selectedTowerType.getRange();
-            g2d.fillOval(mousePos.x - r, mousePos.y - r, r * 2, r * 2);
-            g2d.setColor(Color.WHITE);
-            g2d.drawOval(mousePos.x - r, mousePos.y - r, r * 2, r * 2);
+            g2.setColor(new Color(255, 255, 255, 50));
+            g2.fillOval(mousePos.x - r, mousePos.y - r, r * 2, r * 2);
+            g2.setColor(new Color(255, 182, 193, 200));
+            g2.setStroke(new BasicStroke(2));
+            g2.drawOval(mousePos.x - r, mousePos.y - r, r * 2, r * 2);
+            g2.setStroke(new BasicStroke(1));
         }
 
-        // HUD Inferior / Flotante
-        g2d.setColor(new Color(0, 0, 0, 160));
-        g2d.fillRect(15, 15, 260, 110);
-        g2d.setColor(Color.WHITE);
-        g2d.drawRect(15, 15, 260, 110);
-        g2d.setFont(new Font("Monospaced", Font.BOLD, 14));
-        g2d.drawString("💵 DINERO: $" + money, 25, 38);
-        g2d.drawString("❤️ VIDAS:  " + lives + " / 100", 25, 63);
-        g2d.drawString("⭐ RONDA:  " + (round - 1), 25, 88);
-        g2d.setFont(new Font("Arial", Font.ITALIC, 11));
-        g2d.drawString("Teclas [1,2,3,4] para monos | [ESPACIO]", 25, 112);
+        drawHUD(g2);
     }
 
+    private void drawHUD(Graphics2D g) {
+        // Panel HUD con estilo Kitty
+        g.setColor(new Color(255, 240, 245, 200));
+        g.fillRoundRect(12, 12, 270, 118, 16, 16);
+        g.setColor(new Color(220, 80, 120));
+        g.setStroke(new BasicStroke(2));
+        g.drawRoundRect(12, 12, 270, 118, 16, 16);
+        g.setStroke(new BasicStroke(1));
+
+        g.setFont(new Font("Monospaced", Font.BOLD, 13));
+        g.setColor(new Color(150, 0, 60));
+        g.drawString("💵  DINERO: $" + money, 24, 38);
+        g.drawString("❤️  VIDAS:   " + lives + " / 100", 24, 60);
+        g.drawString("⭐  RONDA:   " + (round - 1), 24, 82);
+
+        g.setFont(new Font("Arial", Font.ITALIC, 11));
+        g.setColor(new Color(180, 60, 100));
+        g.drawString("[1] Dardo  [2] Boom  [3] Sniper  [4] Super", 24, 102);
+        g.drawString("[ESPACIO] Iniciar oleada    [ESC] Cancelar", 24, 118);
+
+        // Indicador de torre seleccionada
+        if (selectedTowerType != null) {
+            g.setColor(new Color(255, 240, 245, 220));
+            g.fillRoundRect(12, 140, 200, 28, 10, 10);
+            g.setColor(new Color(220, 80, 120));
+            g.drawRoundRect(12, 140, 200, 28, 10, 10);
+            g.setFont(new Font("Arial", Font.BOLD, 12));
+            g.setColor(new Color(100, 0, 50));
+            g.drawString("► " + selectedTowerType.getName()
+                    + "  ($" + selectedTowerType.getCost() + ")", 22, 159);
+        }
+    }
+
+    // ── API pública para WaveManager ─────────────────────────────────────────
     public void spawnBloon(Bloon b) {
         b.setPath(this.path);
         bloons.add(b);
