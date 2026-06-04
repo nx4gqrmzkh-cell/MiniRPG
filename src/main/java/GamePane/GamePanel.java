@@ -14,6 +14,8 @@ import Monos.Projectile;
 import Panel.Path;
 import Oleadas.WaveManager;
 import controlador.TorreDAO;
+import controlador.PartidaLogger;
+import controlador.HistorialDAO;
 
 public class GamePanel extends JPanel implements Runnable {
 
@@ -28,6 +30,7 @@ public class GamePanel extends JPanel implements Runnable {
     private int money = 650;
     private int lives = 100;
     private int round = 1;
+    private int ultimaRondaGuardada = 0; // evita guardar varias veces por oleada
 
     private List<Bloon> bloons = new ArrayList<>();
     private List<Tower> towers = new ArrayList<>();
@@ -194,11 +197,17 @@ public class GamePanel extends JPanel implements Runnable {
                 lives -= b.getDamage();
                 bIt.remove();
                 if (lives <= 0) {
-                    new controlador.HistorialDAO().guardar(round - 1, money, lives);
                     lives = 0;
                     running = false;
                     System.out.println("GAME OVER");
-                    controlador.PartidaLogger.guardarPartida(round - 1, money, lives);
+                    // Guardar resultado en fichero de texto y en base de datos
+                    int rondaFinal = round - 1;
+                    PartidaLogger.guardarPartida(rondaFinal, money, lives);
+                    try {
+                        new HistorialDAO().guardar(rondaFinal, money, lives);
+                    } catch (Exception ex) {
+                        System.err.println("[BD] No se pudo guardar el historial: " + ex.getMessage());
+                    }
                 }
             } else if (b.isPopped()) {
                 money += b.getValue();
@@ -211,6 +220,19 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
         bloons.addAll(nuevosHijos);
+
+        // Al terminar cada oleada con vida, guardar estado en fichero y BD (una sola vez)
+        int rondaCompletada = round - 1;
+        if (!waveManager.isWaveActive() && bloons.isEmpty() && rondaCompletada > 0
+                && rondaCompletada != ultimaRondaGuardada) {
+            ultimaRondaGuardada = rondaCompletada;
+            PartidaLogger.guardarPartida(rondaCompletada, money, lives);
+            try {
+                new HistorialDAO().guardar(rondaCompletada, money, lives);
+            } catch (Exception ex) {
+                System.err.println("[BD] No se pudo guardar el historial: " + ex.getMessage());
+            }
+        }
     }
 
     @Override

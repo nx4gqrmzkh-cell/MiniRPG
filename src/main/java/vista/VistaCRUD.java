@@ -82,25 +82,7 @@ public class VistaCRUD extends JFrame implements IVistaCRUD {
                 mostrarMensaje("Error al registrar: " + ex.getMessage(), true);
             }
         });
-        btnActualizar.addActionListener(e -> {
-            int id = getFilaSeleccionadaId();
-            if (id != -1) {
-                try {
-                    if (dao.actualizar(
-                            id,
-                            Integer.parseInt(txtRango.getText()),
-                            Integer.parseInt(txtCosto.getText()),
-                            Integer.parseInt(txtDanio.getText()),
-                            Long.parseLong(txtCadencia.getText()))) {
-                        mostrarMensaje("Torre actualizada correctamente.", false);
-                        refrescarTabla();
-                        limpiarFormulario();
-                    }
-                } catch (Exception ex) {
-                    mostrarMensaje("Error al modificar: " + ex.getMessage(), true);
-                }
-            }
-        });
+
         btnEliminar.addActionListener(e -> {
             int id = getFilaSeleccionadaId();
             if (id != -1) {
@@ -108,9 +90,49 @@ public class VistaCRUD extends JFrame implements IVistaCRUD {
                     if (dao.eliminar(id)) {
                         mostrarMensaje("Registro eliminado de SQL.", false);
                         refrescarTabla();
+                        limpiarFormulario();
                     }
                 } catch (Exception ex) {
                     mostrarMensaje("No se pudo eliminar.", true);
+                }
+            }
+        });
+
+        // Listener del botón Modificar (Update) — antes no tenía ningún listener
+        btnActualizar.addActionListener(e -> {
+            int id = getFilaSeleccionadaId();
+            if (id != -1) {
+                try {
+                    int rango = Integer.parseInt(txtRango.getText());
+                    int costo = Integer.parseInt(txtCosto.getText());
+                    int danio = Integer.parseInt(txtDanio.getText());
+                    long cadencia = Long.parseLong(txtCadencia.getText());
+
+                    if (dao.actualizar(id, rango, costo, danio, cadencia)) {
+                        mostrarMensaje("Torre modificada en SQL con éxito.", false);
+                        refrescarTabla();
+                        limpiarFormulario();
+                    } else {
+                        mostrarMensaje("No se encontró la torre con ese ID.", true);
+                    }
+                } catch (NumberFormatException ex) {
+                    mostrarMensaje("Rellena todos los campos numéricos correctamente.", true);
+                } catch (Exception ex) {
+                    mostrarMensaje("Error al modificar: " + ex.getMessage(), true);
+                }
+            }
+        });
+
+        // Al hacer clic en una fila, se autocompleta el formulario para editar fácilmente
+        tablaTorres.getSelectionModel().addListSelectionListener(ev -> {
+            if (!ev.getValueIsAdjusting()) {
+                int fila = tablaTorres.getSelectedRow();
+                if (fila != -1) {
+                    txtNombre.setText(modeloTabla.getValueAt(fila, 1).toString());
+                    txtRango.setText(modeloTabla.getValueAt(fila, 2).toString());
+                    txtCosto.setText(modeloTabla.getValueAt(fila, 3).toString());
+                    txtDanio.setText(modeloTabla.getValueAt(fila, 4).toString());
+                    txtCadencia.setText(modeloTabla.getValueAt(fila, 5).toString());
                 }
             }
         });
