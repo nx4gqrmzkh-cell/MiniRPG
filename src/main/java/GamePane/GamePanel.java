@@ -194,9 +194,11 @@ public class GamePanel extends JPanel implements Runnable {
                 lives -= b.getDamage();
                 bIt.remove();
                 if (lives <= 0) {
+                    new controlador.HistorialDAO().guardar(round - 1, money, lives);
                     lives = 0;
                     running = false;
                     System.out.println("GAME OVER");
+                    controlador.PartidaLogger.guardarPartida(round - 1, money, lives);
                 }
             } else if (b.isPopped()) {
                 money += b.getValue();

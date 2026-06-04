@@ -46,3 +46,13 @@ INSERT INTO tipo_bloon VALUES ('RED', 1, 1, 1.20, 'RED', 'imagenes/enemigos/enem
 INSERT INTO tipo_bloon VALUES ('BLUE', 2, 2, 1.60, 'BLUE', 'imagenes/enemigos/enemy_2_skull_cat.png', 'RED');
 INSERT INTO tipo_bloon VALUES ('GREEN', 3, 3, 2.20, 'GREEN', 'imagenes/enemigos/enemy_3_robot_kitty.png', 'BLUE');
 INSERT INTO tipo_bloon VALUES ('YELLOW', 4, 4, 3.00, 'YELLOW', 'imagenes/enemigos/enemy_4_shadow_kitty.png', 'GREEN');y', 150, 2500, 1, 120, '218,165,32');
+
+-- Restricción: valores no pueden ser negativos
+ALTER TABLE torres
+  ADD CONSTRAINT chk_rango     CHECK (rango     >= 0),
+  ADD CONSTRAINT chk_costo     CHECK (costo     >= 0),
+  ADD CONSTRAINT chk_danio     CHECK (daño      >= 0),
+  ADD CONSTRAINT chk_cadencia  CHECK (cadencia_fuego > 0);
+
+-- ON DELETE para partidas (si se borra una torre del catálogo no afecta al historial)
+-- partidas_historial ya es independiente, sin FKs a torres — correcto.

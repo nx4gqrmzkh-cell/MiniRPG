@@ -82,7 +82,25 @@ public class VistaCRUD extends JFrame implements IVistaCRUD {
                 mostrarMensaje("Error al registrar: " + ex.getMessage(), true);
             }
         });
-
+        btnActualizar.addActionListener(e -> {
+            int id = getFilaSeleccionadaId();
+            if (id != -1) {
+                try {
+                    if (dao.actualizar(
+                            id,
+                            Integer.parseInt(txtRango.getText()),
+                            Integer.parseInt(txtCosto.getText()),
+                            Integer.parseInt(txtDanio.getText()),
+                            Long.parseLong(txtCadencia.getText()))) {
+                        mostrarMensaje("Torre actualizada correctamente.", false);
+                        refrescarTabla();
+                        limpiarFormulario();
+                    }
+                } catch (Exception ex) {
+                    mostrarMensaje("Error al modificar: " + ex.getMessage(), true);
+                }
+            }
+        });
         btnEliminar.addActionListener(e -> {
             int id = getFilaSeleccionadaId();
             if (id != -1) {
