@@ -12,6 +12,7 @@ public class WaveManager {
     private boolean waveActive = false;
 
     private static class SpawnEvent {
+
         Bloon.Type type;
         long delay;
 
@@ -34,7 +35,6 @@ public class WaveManager {
 
     private void generateWave(int round) {
         if (round <= 3) {
-            // Solo los primeros dos tipos de Hello Kitty oscuros
             for (int i = 0; i < round * 5 + 5; i++) {
                 spawnQueue.add(new SpawnEvent(Bloon.Type.RED, 600));
             }
@@ -42,13 +42,11 @@ public class WaveManager {
                 spawnQueue.add(new SpawnEvent(Bloon.Type.BLUE, 500));
             }
         } else if (round <= 8) {
-            // Entran en juego los robots kitty
             for (int i = 0; i < round * 3; i++) {
                 spawnQueue.add(new SpawnEvent(Bloon.Type.BLUE, 400));
                 spawnQueue.add(new SpawnEvent(Bloon.Type.GREEN, 450));
             }
         } else {
-            // Despliegue masivo incluyendo las Sombras de la fase final (Yellow)
             for (int i = 0; i < round; i++) {
                 spawnQueue.add(new SpawnEvent(Bloon.Type.YELLOW, 350));
                 spawnQueue.add(new SpawnEvent(Bloon.Type.GREEN, 300));
@@ -57,21 +55,29 @@ public class WaveManager {
     }
 
     public void update() {
-        if (!waveActive || spawnQueue.isEmpty()) {
-            if (spawnQueue.isEmpty() && game.getBloons().isEmpty()) {
+        if (!waveActive) {
+            return;
+        }
+
+        if (spawnQueue.isEmpty()) {
+            if (game.getBloons().isEmpty()) {
                 waveActive = false;
             }
             return;
         }
 
         long now = System.currentTimeMillis();
-        if (now - lastSpawn >= spawnQueue.peek().delay) {
-            SpawnEvent event = spawnQueue.poll();
-            Bloon newBloon = new Bloon(event.type);
+        SpawnEvent nextEvent = spawnQueue.peek();
+
+        if (now - lastSpawn >= nextEvent.delay) {
+            spawnQueue.poll();
+            Bloon newBloon = new Bloon(nextEvent.type, null);
             game.spawnBloon(newBloon);
             lastSpawn = now;
         }
     }
 
-    public boolean isWaveActive() { return waveActive; }
+    public boolean isWaveActive() {
+        return waveActive;
+    }
 }

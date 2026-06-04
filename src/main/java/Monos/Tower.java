@@ -42,45 +42,39 @@ public class Tower implements Cloneable {
 
     public void update(List<Bloon> bloons, List<Projectile> projectiles) {
         long now = System.currentTimeMillis();
-        if (now - lastShot < fireRate) {
-            return;
-        }
-
-        Bloon target = findTarget(bloons);
-        if (target != null) {
-            shoot(target, projectiles);
-            lastShot = now;
+        if (now - lastShot >= fireRate) {
+            Bloon target = findTarget(bloons);
+            if (target != null) {
+                shoot(target, projectiles);
+                lastShot = now;
+            }
         }
     }
 
     protected Bloon findTarget(List<Bloon> bloons) {
-        Bloon best = null;
-        double bestProgress = -1;
         for (Bloon bloon : bloons) {
             double dist = Math.hypot(bloon.getX() - x, bloon.getY() - y);
-            if (dist <= range && bloon.getDistanceTraveled() > bestProgress) {
-                best = bloon;
-                bestProgress = bloon.getDistanceTraveled();
+            if (dist <= range && !bloon.isPopped()) {
+                return bloon;
             }
         }
-        return best;
+        return null;
     }
 
     protected void shoot(Bloon target, List<Projectile> projectiles) {
         double angle = Math.atan2(target.getY() - y, target.getX() - x);
-        projectiles.add(new Projectile(x, y, angle, damage, 15, target));
+        projectiles.add(new Projectile(x, y, angle, damage, 12, target));
     }
 
     public void draw(Graphics2D g) {
-        // Base estética original
-        g.setColor(new Color(120, 120, 120, 100));
-        g.fillOval(x - 22, y - 22, 44, 44);
+        g.setColor(new Color(0, 0, 0, 40));
+        g.fillOval(x - 20, y - 20, 40, 40);
 
         if (towerImage != null) {
             g.drawImage(towerImage, x - 22, y - 22, null);
         } else {
             g.setColor(color);
-            g.fillOval(x - 18, y - 18, 36, 36);
+            g.fillOval(x - 16, y - 16, 32, 32);
         }
     }
 
@@ -119,20 +113,5 @@ public class Tower implements Cloneable {
 
     public Color getColor() {
         return color;
-    }
-
-    public String getImagePath() {
-        return imagePath;
-    }
-
-    @Override
-    public Tower clone() {
-        try {
-            Tower cloned = (Tower) super.clone();
-            cloned.cargarImagen();
-            return cloned;
-        } catch (CloneNotSupportedException e) {
-            return null;
-        }
     }
 }

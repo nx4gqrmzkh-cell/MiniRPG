@@ -84,14 +84,17 @@ public class Bloon {
         }
     }
 
-    public void damage(int amount) {
+    // Cambia el antiguo método damage(int amount) por este en Bloon.java:
+    public void takeDamage(int amount) {
         if (popped) {
             return;
         }
-        if (type.child != null && type.layers > 1) {
-            this.type = type.child;
+        // Restamos las capas según el daño recibido
+        // Si te acomoda más, puedes usar 'type.layers' o controlar una variable de vida.
+        if (type.child != null) {
+            this.type = type.child; // Pasa al hijo (ej. de Azul a Rojo)
         } else {
-            popped = true;
+            popped = true; // Si ya no tiene hijos, se elimina
         }
     }
 
