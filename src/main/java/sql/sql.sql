@@ -1,16 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package sql;
-
-/**
- *
- * @author Juan
- */
-public class sql0 {
-
-    USE juego;
+ USE juego;
 
     DROP TABLE IF EXISTS torres ;
 
@@ -48,4 +36,3 @@ public class sql0 {
     
 
 'Super Kitty', 150, 2500, 1, 120, '218,165,32');
-}
