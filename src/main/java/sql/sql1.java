@@ -2,8 +2,11 @@ package sql;
 
 import Monos.Tower;
 import Monos.TowerFactory;
+import globos.Bloon;
 import java.awt.Color;
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class sql1 {
 
@@ -11,22 +14,38 @@ public class sql1 {
     private static final String USER = "root";
     private static final String PASSWORD = "";
 
-    public static void main(String[] args) {
-        System.out.println("=== 1. REGISTRANDO TORRE EN LA BASE DE DATOS ===");
-
-        // Probamos insertando un aliado usando sus valores dinámicos
-        Tower dardo = TowerFactory.createDartMonkey();
-        insertarTorreEnBD(dardo);
-
-        System.out.println("\n=== 2. CARGANDO ENTIDADES DESDE LA BASE DE DATOS ===");
-        cargarTorresDesdeBD();
+    /**
+     * Devuelve las estadísticas de un enemigo directamente de la Base de Datos.
+     * Útil si deseas cargar dinámicamente propiedades en el bucle del juego.
+     */
+    public static Map<String, Object> obtenerEstadisticasBloon(String idTipo) {
+        Map<String, Object> stats = new HashMap<>();
+        String sql = "SELECT * FROM tipo_bloon WHERE id_tipo = ?";
+        
+        try (Connection conexion = DriverManager.getConnection(URL, USER, PASSWORD); 
+             PreparedStatement psnt = conexion.prepareStatement(sql)) {
+            
+            psnt.setString(1, idTipo);
+            try (ResultSet rset = psnt.executeQuery()) {
+                if (rset.next()) {
+                    stats.put("layers", rset.getInt("capas"));
+                    stats.put("rbe", rset.getInt("rbe"));
+                    stats.put("speed", rset.getDouble("velocidad"));
+                    stats.put("color", rset.getString("color"));
+                    stats.put("imagePath", rset.getString("ruta_imagen"));
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al obtener datos del Bloon: " + e.getMessage());
+        }
+        return stats;
     }
 
     public static void insertarTorreEnBD(Tower t) {
-        // Sentencia SQL adaptada para almacenar las propiedades clave de tu juego
         String sql = "INSERT INTO torres (nombre, rango, costo, daño, cadencia_fuego, color_rgb) VALUES (?, ?, ?, ?, ?, ?)";
 
-        try (Connection conexion = DriverManager.getConnection(URL, USER, PASSWORD); PreparedStatement psnt = conexion.prepareStatement(sql)) {
+        try (Connection conexion = DriverManager.getConnection(URL, USER, PASSWORD); 
+             PreparedStatement psnt = conexion.prepareStatement(sql)) {
 
             psnt.setString(1, t.getName());
             psnt.setInt(2, t.getRange());
@@ -34,7 +53,6 @@ public class sql1 {
             psnt.setInt(4, t.getDamage());
             psnt.setLong(5, t.getFireRate());
 
-            // Convertimos el objeto Color de Java a String legible para la base de datos
             String rgb = t.getColor().getRed() + "," + t.getColor().getGreen() + "," + t.getColor().getBlue();
             psnt.setString(6, rgb);
 
@@ -49,18 +67,21 @@ public class sql1 {
     public static void cargarTorresDesdeBD() {
         String sql = "SELECT * FROM torres";
 
-        try (Connection conexion = DriverManager.getConnection(URL, USER, PASSWORD); PreparedStatement psnt = conexion.prepareStatement(sql); ResultSet rset = psnt.executeQuery()) {
+        try (Connection conexion = DriverManager.getConnection(URL, USER, PASSWORD); 
+             PreparedStatement psnt = conexion.prepareStatement(sql); 
+             ResultSet rset = psnt.executeQuery()) {
 
             while (rset.next()) {
                 String nombre = rset.getString("nombre");
                 int costo = rset.getInt("costo");
                 int rango = rset.getInt("rango");
+                int danio = rset.getInt("daño");
+                long cadencia = rset.getLong("cadencia_fuego");
 
-                System.out.println("SQL -> Registro: " + nombre + " | Costo: $" + costo + " | Rango: " + rango);
+                System.out.println("SQL -> Registro: " + nombre + " | Costo: $" + costo + " | Rango: " + rango + " | Daño: " + danio);
 
-                // Mapeo directo de instanciación en memoria de Java usando la factoría corregida
                 Tower objetoJava = null;
-                if (nombre.equalsIgnoreCase("Mono Dardo")) {
+                if (nombre.equalsIgnoreCase("Mono Dardo") || nombre.equalsIgnoreCase("Mono Dardero Tradicional")) {
                     objetoJava = TowerFactory.createDartMonkey();
                 } else if (nombre.equalsIgnoreCase("Mono Boomerang")) {
                     objetoJava = TowerFactory.createTackShooter();
@@ -71,12 +92,11 @@ public class sql1 {
                 }
 
                 if (objetoJava != null) {
-                    System.out.println("   [Sistema] Objeto '" + objetoJava.getName() + "' mapeado en Java.");
+                    System.out.println("   [Sistema] Objeto '" + objetoJava.getName() + "' verificado y mapeado.");
                 }
             }
-
         } catch (SQLException e) {
-            System.out.println("Error al consultar la tabla: " + e.getMessage());
+            System.out.println("Error al consultar la tabla de torres: " + e.getMessage());
         }
     }
 }
